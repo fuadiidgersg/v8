@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts"],
   },
-  allowedDevOrigins: ["*.janeway.replit.dev", "*.replit.dev", "*.replit.app"],
+  allowedDevOrigins: ["*.janeway.replit.dev", "*.spock.replit.dev", "*.replit.dev", "*.replit.app", "*.repl.co"],
   typescript: {
     ignoreBuildErrors: true,
   },

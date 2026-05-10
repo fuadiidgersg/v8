@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import { create } from 'zustand'
 import type { Trade } from '@/features/trades/data/schema'
 import { trades as seedTrades } from '@/features/trades/data/trades'
-import { createClient } from '@/lib/supabase/client'
 import { useAccountsStore } from './accounts-store'
 
 export type ImportResult = {
@@ -26,40 +25,33 @@ type TradesState = {
   reset: () => void
 }
 
-// Module-level auth context set by DataProvider
-let _userId: string | null = null
-export function _setTradesUserId(id: string | null) {
-  _userId = id
-}
-
-function toDbTrade(t: Trade, userId: string) {
+function toApiTrade(t: Trade, accountId: string, accountName: string) {
   return {
     id: t.id,
-    user_id: userId,
-    account_id: t.accountId ?? '',
-    account: t.account,
+    account_id: accountId,
+    account: accountName,
     pair: t.pair,
     direction: t.direction,
     entry: t.entry,
     exit: t.exit,
-    stop_loss: t.stopLoss ?? null,
-    take_profit: t.takeProfit ?? null,
+    stop_loss: t.stopLoss ?? undefined,
+    take_profit: t.takeProfit ?? undefined,
     lots: t.lotSize,
     pnl: t.pnl,
     pips: t.pips,
     r_multiple: t.rMultiple,
     status: t.status,
-    opened_at: t.openedAt.toISOString(),
-    closed_at: t.closedAt.toISOString(),
-    strategy: t.strategy ?? null,
-    session: t.session ?? null,
-    timeframe: t.timeframe ?? null,
-    emotion: t.emotion ?? null,
-    notes: t.notes ?? null,
-    mistakes: t.mistakes ?? null,
-    lessons: t.lessons ?? null,
-    risk_amount: t.riskAmount ?? null,
-    screenshot_url: t.screenshotUrl ?? null,
+    opened_at: t.openedAt instanceof Date ? t.openedAt.toISOString() : t.openedAt,
+    closed_at: t.closedAt instanceof Date ? t.closedAt.toISOString() : t.closedAt,
+    strategy: t.strategy,
+    session: t.session,
+    timeframe: t.timeframe,
+    emotion: t.emotion,
+    notes: t.notes,
+    mistakes: t.mistakes,
+    lessons: t.lessons,
+    risk_amount: t.riskAmount,
+    screenshot_url: t.screenshotUrl,
     tags: t.tags ?? [],
   }
 }
@@ -95,6 +87,18 @@ export function toAppTrade(row: Record<string, unknown>): Trade {
   }
 }
 
+function apiPost(path: string, body: unknown) {
+  fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }).catch(() => {})
+}
+
+function apiDelete(path: string) {
+  fetch(path, { method: 'DELETE' }).catch(() => {})
+}
+
 export const useTradesStore = create<TradesState>()((set, get) => ({
   trades: [],
   isLoading: true,
@@ -126,12 +130,9 @@ export const useTradesStore = create<TradesState>()((set, get) => ({
 
     set({ trades: [...existing, ...fresh] })
 
-    if (_userId) {
-      const rows = fresh.map((t) => toDbTrade(t, _userId!))
-      createClient()
-        .from('trades')
-        .upsert(rows, { onConflict: 'id,user_id' })
-        .then(() => {})
+    // Persist each new trade through the API route (server-side, service role key)
+    for (const t of fresh) {
+      apiPost('/api/trades', toApiTrade(t, accountId, accountName))
     }
 
     return { added: fresh.length, duplicates }
@@ -141,13 +142,8 @@ export const useTradesStore = create<TradesState>()((set, get) => ({
     const before = get().trades.length
     set((state) => ({ trades: state.trades.filter((t) => t.id !== id) }))
     const removed = get().trades.length < before
-    if (removed && _userId) {
-      createClient()
-        .from('trades')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', _userId)
-        .then(() => {})
+    if (removed) {
+      apiDelete(`/api/trades/${id}`)
     }
     return removed
   },
@@ -157,48 +153,29 @@ export const useTradesStore = create<TradesState>()((set, get) => ({
     const before = get().trades.length
     set((state) => ({ trades: state.trades.filter((t) => !ids_set.has(t.id)) }))
     const count = before - get().trades.length
-    if (count > 0 && _userId) {
-      createClient()
-        .from('trades')
-        .delete()
-        .in('id', ids)
-        .eq('user_id', _userId)
-        .then(() => {})
+    if (count > 0) {
+      apiPost('/api/trades/bulk-delete', { ids })
     }
     return count
   },
 
   clearTradesForAccount: (accountId) => {
-    const toRemove = get().trades.filter((t) => t.accountId === accountId).map((t) => t.id)
     const before = get().trades.length
     set((state) => ({ trades: state.trades.filter((t) => t.accountId !== accountId) }))
     const count = before - get().trades.length
-    if (count > 0 && _userId && toRemove.length > 0) {
-      createClient()
-        .from('trades')
-        .delete()
-        .in('id', toRemove)
-        .eq('user_id', _userId)
-        .then(() => {})
+    if (count > 0) {
+      apiPost('/api/trades/bulk-delete', { ids: [], account_id: accountId })
     }
     return count
   },
 
   removeAccount: (accountId) => {
     set((state) => ({ trades: state.trades.filter((t) => t.accountId !== accountId) }))
-    if (_userId) {
-      createClient()
-        .from('trades')
-        .delete()
-        .eq('account_id', accountId)
-        .eq('user_id', _userId)
-        .then(() => {})
-    }
+    apiPost('/api/trades/bulk-delete', { ids: [], account_id: accountId })
   },
 
   reset: () => {
     set({ trades: [], isLoading: false })
-    _userId = null
   },
 }))
 

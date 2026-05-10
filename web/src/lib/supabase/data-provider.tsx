@@ -2,8 +2,15 @@
 
 import { useEffect, useRef } from "react";
 import { createClient } from "./client";
-import { useAccountsStore, _setAccountsUserId, toAppAccount } from "@/stores/accounts-store";
-import { useTradesStore, _setTradesUserId, toAppTrade } from "@/stores/trades-store";
+import { useAccountsStore, toAppAccount } from "@/stores/accounts-store";
+import { useTradesStore, toAppTrade } from "@/stores/trades-store";
+
+async function apiFetch(path: string) {
+  const res = await fetch(path);
+  if (!res.ok) return null;
+  const json = await res.json();
+  return json.data;
+}
 
 export function SupabaseDataProvider({ children }: { children: React.ReactNode }) {
   const initialized = useRef(false);
@@ -13,36 +20,25 @@ export function SupabaseDataProvider({ children }: { children: React.ReactNode }
     initialized.current = true;
 
     async function load() {
+      // Anon client used only to confirm session — no direct DB queries here
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const userId = session.user.id;
-      _setAccountsUserId(userId);
-      _setTradesUserId(userId);
-
-      // Access store actions via getState() — no React hook subscription needed
       const { _hydrate: hydrateAccounts } = useAccountsStore.getState();
       const { _hydrate: hydrateTrades } = useTradesStore.getState();
 
-      const [{ data: accountRows }, { data: tradeRows }] = await Promise.all([
-        supabase
-          .from("accounts")
-          .select("*")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: true }),
-        supabase
-          .from("trades")
-          .select("*")
-          .eq("user_id", userId)
-          .order("closed_at", { ascending: false }),
+      // All data fetched server-side through API routes (service role key)
+      const [accountRows, tradeRows] = await Promise.all([
+        apiFetch("/api/accounts"),
+        apiFetch("/api/trades?limit=500"),
       ]);
 
       hydrateAccounts(
-        (accountRows ?? []).map((r) => toAppAccount(r as Record<string, unknown>))
+        (accountRows ?? []).map((r: Record<string, unknown>) => toAppAccount(r))
       );
       hydrateTrades(
-        (tradeRows ?? []).map((r) => toAppTrade(r as Record<string, unknown>))
+        (tradeRows ?? []).map((r: Record<string, unknown>) => toAppTrade(r))
       );
     }
 

@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { createClient } from '@/lib/supabase/client'
 
 export type AccountType = 'live' | 'demo' | 'prop'
 export type AccountCurrency = 'USD' | 'EUR' | 'GBP'
@@ -28,7 +27,6 @@ type AccountsState = {
   accounts: TradingAccount[]
   activeAccountId: string | null
   isLoading: boolean
-  // Internal: hydrate from Supabase
   _hydrate: (accounts: TradingAccount[]) => void
   addAccount: (input: Omit<TradingAccount, 'id' | 'createdAt' | 'isArchived'>) => string
   upsertFromImport: (input: UpsertImportInput) => string
@@ -37,12 +35,6 @@ type AccountsState = {
   setArchived: (id: string, archived: boolean) => void
   remove: (id: string) => void
   reset: () => void
-}
-
-// Module-level auth context set by DataProvider
-let _userId: string | null = null
-export function _setAccountsUserId(id: string | null) {
-  _userId = id
 }
 
 const ACTIVE_KEY = 'fuadfx-active-account'
@@ -67,7 +59,27 @@ function inferTypeFromBroker(broker?: string): AccountType {
   return 'live'
 }
 
-function toAppAccount(row: Record<string, unknown>): TradingAccount {
+function apiPost(path: string, body: unknown) {
+  fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }).catch(() => {})
+}
+
+function apiPut(path: string, body: unknown) {
+  fetch(path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }).catch(() => {})
+}
+
+function apiDelete(path: string) {
+  fetch(path, { method: 'DELETE' }).catch(() => {})
+}
+
+export function toAppAccount(row: Record<string, unknown>): TradingAccount {
   return {
     id: row.id as string,
     name: row.name as string,
@@ -103,21 +115,15 @@ export const useAccountsStore = create<AccountsState>()((set, get) => ({
       saveActiveId(activeAccountId)
       return { accounts: [...state.accounts, account], activeAccountId }
     })
-    if (_userId) {
-      createClient()
-        .from('accounts')
-        .insert({
-          id,
-          user_id: _userId,
-          name: input.name,
-          broker: input.broker,
-          number: input.number,
-          type: input.type,
-          currency: input.currency,
-          starting_balance: input.startingBalance,
-        })
-        .then(() => {})
-    }
+    apiPost('/api/accounts', {
+      id,
+      name: input.name,
+      broker: input.broker,
+      number: input.number,
+      type: input.type,
+      currency: input.currency,
+      starting_balance: input.startingBalance,
+    })
     return id
   },
 
@@ -150,21 +156,15 @@ export const useAccountsStore = create<AccountsState>()((set, get) => ({
     }
     set((state) => ({ accounts: [...state.accounts, account], activeAccountId: id }))
     saveActiveId(id)
-    if (_userId) {
-      createClient()
-        .from('accounts')
-        .insert({
-          id,
-          user_id: _userId,
-          name: account.name,
-          broker: account.broker,
-          number: account.number,
-          type: account.type,
-          currency: account.currency,
-          starting_balance: 0,
-        })
-        .then(() => {})
-    }
+    apiPost('/api/accounts', {
+      id,
+      name: account.name,
+      broker: account.broker,
+      number: account.number,
+      type: account.type,
+      currency: account.currency,
+      starting_balance: 0,
+    })
     return id
   },
 
@@ -179,14 +179,7 @@ export const useAccountsStore = create<AccountsState>()((set, get) => ({
         a.id === id ? { ...a, name: name.trim() || a.name } : a
       ),
     }))
-    if (_userId) {
-      createClient()
-        .from('accounts')
-        .update({ name: name.trim() })
-        .eq('id', id)
-        .eq('user_id', _userId)
-        .then(() => {})
-    }
+    apiPut(`/api/accounts/${id}`, { name: name.trim() })
   },
 
   setArchived: (id, archived) => {
@@ -201,14 +194,7 @@ export const useAccountsStore = create<AccountsState>()((set, get) => ({
       }
       return { accounts, activeAccountId }
     })
-    if (_userId) {
-      createClient()
-        .from('accounts')
-        .update({ is_archived: archived })
-        .eq('id', id)
-        .eq('user_id', _userId)
-        .then(() => {})
-    }
+    apiPut(`/api/accounts/${id}`, { is_archived: archived })
   },
 
   remove: (id) => {
@@ -221,20 +207,12 @@ export const useAccountsStore = create<AccountsState>()((set, get) => ({
       }
       return { accounts, activeAccountId }
     })
-    if (_userId) {
-      createClient()
-        .from('accounts')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', _userId)
-        .then(() => {})
-    }
+    apiDelete(`/api/accounts/${id}`)
   },
 
   reset: () => {
     set({ accounts: [], activeAccountId: null, isLoading: false })
     saveActiveId(null)
-    _userId = null
   },
 }))
 
@@ -244,6 +222,3 @@ export function useActiveAccount(): TradingAccount | null {
   if (!activeId) return null
   return accounts.find((a) => a.id === activeId) ?? null
 }
-
-// Export for DataProvider
-export { toAppAccount }
