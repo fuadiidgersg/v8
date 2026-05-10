@@ -1,43 +1,45 @@
-# FuadFX Journal
+# [Project name]
 
-A forex trading journal app built with Next.js 15, Supabase, shadcn/ui, and Tailwind CSS.
+_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
 
 ## Run & Operate
 
-- `npm run dev` — start the dev server (port 3000)
-- `npm run build` — production build
-- `npm run start` — start production server
-- `npm run typecheck` — type-check the project
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm run typecheck` — full typecheck across all packages
+- `pnpm run build` — typecheck + build all packages
+- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
+- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- Required env: `DATABASE_URL` — Postgres connection string
 
 ## Stack
 
-- Next.js 15 (App Router)
-- Supabase (auth + database)
-- shadcn/ui + Tailwind CSS v4
-- Zustand (state), React Query, Recharts
-- TypeScript
-
-## Environment Variables
-
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anonymous key (set in Replit Secrets or Vercel env vars)
-
-## GitHub & Vercel
-
-This is a standard Next.js project. To deploy:
-1. Push this repo to GitHub
-2. Import it in Vercel — it will auto-detect Next.js
-3. Add `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel's Environment Variables settings
+- pnpm workspaces, Node.js 24, TypeScript 5.9
+- API: Express 5
+- DB: PostgreSQL + Drizzle ORM
+- Validation: Zod (`zod/v4`), `drizzle-zod`
+- API codegen: Orval (from OpenAPI spec)
+- Build: esbuild (CJS bundle)
 
 ## Where things live
 
-- `app/` — Next.js App Router pages and layouts
-- `src/features/` — feature modules (auth, trades, settings, etc.)
-- `src/components/` — shared UI components (shadcn/ui)
-- `src/lib/` — utilities, Supabase client, router abstraction
-- `public/` — static assets
-- `next.config.ts` — Next.js config (includes Supabase URL)
+_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+
+## Architecture decisions
+
+_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+
+## Product
+
+_Describe the high-level user-facing capabilities of this app once they exist._
 
 ## User preferences
 
-- Keep Next.js (not Vite)
-- Compatible with GitHub and Vercel
+_Populate as you build — explicit user instructions worth remembering across sessions._
+
+## Gotchas
+
+_Populate as you build — sharp edges, "always run X before Y" rules._
+
+## Pointers
+
+- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
