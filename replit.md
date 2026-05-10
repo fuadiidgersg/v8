@@ -1,15 +1,23 @@
-# [Project name]
+# FuadFX
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A forex trading journal that lets traders log, review, and analyse their trades.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `cd web && pnpm dev` — run the Next.js frontend (port 3000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+
+## Required secrets (set in Replit Secrets)
+
+| Secret | Used by | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | client + server | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | browser client (`web/src/lib/supabase/client.ts`) | Anon/public key for client-side auth |
+| `SUPABASE_SERVICE_ROLE_KEY` | server only (`web/src/lib/server/supabase.ts`) | Service-role key — never exposed to browser |
 
 ## Stack
 
