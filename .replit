@@ -29,7 +29,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd web && pnpm dev"
+args = "pnpm dev"
 waitForPort = 3000
 
 [agent]
@@ -43,6 +43,10 @@ timeoutMs = 20000
 [[ports]]
 localPort = 3000
 externalPort = 3000
+
+[[ports]]
+localPort = 5173
+externalPort = 5173
 
 [[ports]]
 localPort = 8080
