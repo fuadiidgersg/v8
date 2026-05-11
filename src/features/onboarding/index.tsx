@@ -30,7 +30,7 @@ import { AuthLayout } from '@/features/auth/auth-layout'
 
 const schema = z.object({
   displayName: z.string().min(1, 'Display name is required'),
-  experience: z.enum(['beginner', 'intermediate', 'advanced', 'pro']),
+  experience: z.enum(['beginner', 'intermediate', 'advanced', 'professional']),
   preferredPair: z.string().min(1, 'Preferred pair is required'),
   startingCapital: z.number().min(1, 'Starting capital must be greater than 0'),
 })
@@ -41,7 +41,7 @@ export default function Onboarding() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
-  const form = useForm<z.input<typeof schema>, unknown, z.output<typeof schema>>({
+  const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       displayName: '',
@@ -55,10 +55,14 @@ export default function Onboarding() {
   useEffect(() => {
     async function prefill() {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) return
-      const fullName = (user.user_metadata?.full_name as string | undefined)?.trim()
-      if (fullName) {
+      const fullName = (
+        user.user_metadata?.full_name as string | undefined
+      )?.trim()
+      if (fullName && !form.getValues('displayName')) {
         form.setValue('displayName', fullName, { shouldValidate: false })
       }
     }
@@ -69,7 +73,9 @@ export default function Onboarding() {
     setIsLoading(true)
     const supabase = createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       toast.error('Not authenticated')
       setIsLoading(false)
@@ -91,8 +97,7 @@ export default function Onboarding() {
     }
 
     toast.success('Profile saved! Welcome to FuadFX.')
-    router.push('/')
-    router.refresh()
+    router.replace('/')
   }
 
   return (
@@ -141,7 +146,7 @@ export default function Onboarding() {
                           { label: 'Beginner', value: 'beginner' },
                           { label: 'Intermediate', value: 'intermediate' },
                           { label: 'Advanced', value: 'advanced' },
-                          { label: 'Pro', value: 'pro' },
+                          { label: 'Professional', value: 'professional' },
                         ]}
                       />
                     </FormControl>

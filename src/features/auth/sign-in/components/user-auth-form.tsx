@@ -65,9 +65,9 @@ export function UserAuthForm({
       return
     }
 
-    toast.success(`Welcome back!`)
-    router.push(redirectTo || '/')
-    router.refresh()
+    toast.success('Welcome back!')
+    // Use replace so the back button doesn't return to sign-in
+    router.replace(redirectTo || '/')
   }
 
   return (

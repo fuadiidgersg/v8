@@ -4,68 +4,28 @@ import { type NextRequest, NextResponse } from "next/server";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-export const createClient = (request: NextRequest) => {
-  // Create an unmodified response
-  let supabaseResponse = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
-
-  const supabase = createServerClient(
-    supabaseUrl!,
-    supabaseKey!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    },
-  );
-
-  return supabaseResponse
-};
-
 export async function updateSession(request: NextRequest) {
-  // Create an unmodified response
-  let supabaseResponse = NextResponse.next({
-    request: {
-      headers: request.headers,
+  let supabaseResponse = NextResponse.next({ request });
+
+  const supabase = createServerClient(supabaseUrl!, supabaseKey!, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value)
+        );
+        supabaseResponse = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          supabaseResponse.cookies.set(name, value, options)
+        );
+      },
     },
   });
 
-  const supabase = createServerClient(
-    supabaseUrl!,
-    supabaseKey!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    },
-  );
-
-  // Refresh session — do not remove this
+  // IMPORTANT: Do not add any logic between createServerClient and getUser
+  // that might interrupt cookie forwarding.
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -73,21 +33,29 @@ export async function updateSession(request: NextRequest) {
   const url = request.nextUrl.clone();
   const { pathname } = url;
 
+  // Public routes that never require authentication
   const isAuthRoute =
     pathname.startsWith("/sign-in") ||
     pathname.startsWith("/sign-up") ||
     pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/otp");
+    pathname.startsWith("/otp") ||
+    pathname.startsWith("/update-password") ||
+    pathname.startsWith("/auth/callback");
 
   const isOnboarding = pathname === "/onboarding";
+  const isApiRoute = pathname.startsWith("/api/");
 
-  if (!user && !isAuthRoute) {
+  // API routes return 401 via getAuthenticatedUser() — don't redirect here
+  if (isApiRoute) return supabaseResponse;
+
+  // No session → send to sign-in (except auth/public routes)
+  if (!user && !isAuthRoute && !isOnboarding) {
     url.pathname = "/sign-in";
     return NextResponse.redirect(url);
   }
 
-  if (user && !isOnboarding && !isAuthRoute) {
-    // Check if profile exists
+  // Has session on a protected page — ensure onboarding is complete
+  if (user && !isAuthRoute && !isOnboarding) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("id")
@@ -100,20 +68,27 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  if (user && (isAuthRoute || isOnboarding)) {
-    // Already logged in — check if they need onboarding
+  // Has session on an auth page → redirect away
+  if (user && isAuthRoute) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("id")
       .eq("id", user.id)
       .single();
 
-    if (isAuthRoute) {
-      url.pathname = profile ? "/" : "/onboarding";
-      return NextResponse.redirect(url);
-    }
+    url.pathname = profile ? "/" : "/onboarding";
+    return NextResponse.redirect(url);
+  }
 
-    if (isOnboarding && profile) {
+  // Has session on onboarding but already has profile → send to dashboard
+  if (user && isOnboarding) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .single();
+
+    if (profile) {
       url.pathname = "/";
       return NextResponse.redirect(url);
     }
