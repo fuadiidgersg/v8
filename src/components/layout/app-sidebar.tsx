@@ -1,3 +1,4 @@
+import { useUserProfile } from '@/context/user-profile-context'
 import { useLayout } from '@/context/layout-provider'
 import {
   Sidebar,
@@ -13,6 +14,8 @@ import { NavUser } from './nav-user'
 
 export function AppSidebar() {
   const { collapsible, variant } = useLayout()
+  const userProfile = useUserProfile()
+
   return (
     <Sidebar collapsible={collapsible} variant={variant}>
       <SidebarHeader>
@@ -24,7 +27,7 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={sidebarData.user} />
+        <NavUser user={userProfile} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

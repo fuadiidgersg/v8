@@ -3,11 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { AuthenticatedLayout } from "@/components/layout/authenticated-layout";
-import { SupabaseDataProvider } from "@/lib/supabase/data-provider";
-import { UserProfileProvider } from "@/context/user-profile-context";
 
-export default function AuthGuardLayout({
+export default function AuthGroupLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -20,23 +17,22 @@ export default function AuthGuardLayout({
 
     async function check() {
       const { data: { session } } = await supabase.auth.getSession();
+
       if (!session) {
-        router.replace("/sign-in");
+        // Not authenticated — show auth page
+        setReady(true);
         return;
       }
 
+      // Authenticated — check if onboarding complete
       const { data: profile } = await supabase
         .from("profiles")
         .select("id")
         .eq("id", session.user.id)
         .single();
 
-      if (!profile) {
-        router.replace("/onboarding");
-        return;
-      }
-
-      setReady(true);
+      // Redirect away from auth pages
+      router.replace(profile ? "/" : "/onboarding");
     }
 
     check();
@@ -44,11 +40,5 @@ export default function AuthGuardLayout({
 
   if (!ready) return null;
 
-  return (
-    <UserProfileProvider>
-      <SupabaseDataProvider>
-        <AuthenticatedLayout>{children}</AuthenticatedLayout>
-      </SupabaseDataProvider>
-    </UserProfileProvider>
-  );
+  return <>{children}</>;
 }

@@ -24,6 +24,7 @@ import { PasswordInput } from '@/components/password-input'
 
 const formSchema = z
   .object({
+    fullName: z.string().min(1, 'Please enter your full name.'),
     email: z.email({
       error: (iss) =>
         iss.input === '' ? 'Please enter your email.' : undefined,
@@ -48,7 +49,7 @@ export function SignUpForm({
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { email: '', password: '', confirmPassword: '' },
+    defaultValues: { fullName: '', email: '', password: '', confirmPassword: '' },
   })
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
@@ -58,6 +59,11 @@ export function SignUpForm({
     const { data: authData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
+      options: {
+        data: {
+          full_name: data.fullName.trim(),
+        },
+      },
     })
 
     if (error) {
@@ -68,13 +74,13 @@ export function SignUpForm({
 
     // If no session returned, email confirmation is required
     if (!authData.session) {
-      toast.success('Account created! Check your email to confirm then sign in.')
+      toast.success('Account created! Check your email to confirm, then sign in.')
       router.push('/sign-in')
       return
     }
 
     // Session established — go to onboarding
-    toast.success('Account created! Let\'s set up your profile.')
+    toast.success(`Welcome, ${data.fullName.split(' ')[0]}! Let's finish setting up your profile.`)
     router.push('/onboarding')
   }
 
@@ -85,6 +91,19 @@ export function SignUpForm({
         className={cn('grid gap-3', className)}
         {...props}
       >
+        <FormField
+          control={form.control}
+          name='fullName'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Full Name</FormLabel>
+              <FormControl>
+                <Input placeholder='John Doe' {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name='email'

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -51,6 +51,20 @@ export default function Onboarding() {
     },
   })
 
+  // Pre-fill display name from signup metadata
+  useEffect(() => {
+    async function prefill() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const fullName = (user.user_metadata?.full_name as string | undefined)?.trim()
+      if (fullName) {
+        form.setValue('displayName', fullName, { shouldValidate: false })
+      }
+    }
+    prefill()
+  }, [form])
+
   const onSubmit = async (data: FormData) => {
     setIsLoading(true)
     const supabase = createClient()
@@ -76,7 +90,7 @@ export default function Onboarding() {
       return
     }
 
-    toast.success('Profile saved!')
+    toast.success('Profile saved! Welcome to FuadFX.')
     router.push('/')
     router.refresh()
   }
