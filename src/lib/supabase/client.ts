@@ -7,15 +7,15 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
   );
 }
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
+if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
   throw new Error(
-    "Missing required environment variable: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY. " +
+    "Missing required environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY. " +
     "Set it in your environment variables and restart the server."
   );
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const createClient = () =>
   createBrowserClient(

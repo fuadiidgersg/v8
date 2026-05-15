@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -24,8 +24,6 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // IMPORTANT: Do not add any logic between createServerClient and getUser
-  // that might interrupt cookie forwarding.
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -33,7 +31,6 @@ export async function updateSession(request: NextRequest) {
   const url = request.nextUrl.clone();
   const { pathname } = url;
 
-  // Public routes that never require authentication
   const isAuthRoute =
     pathname.startsWith("/sign-in") ||
     pathname.startsWith("/sign-up") ||
@@ -45,16 +42,13 @@ export async function updateSession(request: NextRequest) {
   const isOnboarding = pathname === "/onboarding";
   const isApiRoute = pathname.startsWith("/api/");
 
-  // API routes return 401 via getAuthenticatedUser() — don't redirect here
   if (isApiRoute) return supabaseResponse;
 
-  // No session → send to sign-in (except auth/public routes)
   if (!user && !isAuthRoute && !isOnboarding) {
     url.pathname = "/sign-in";
     return NextResponse.redirect(url);
   }
 
-  // Has session on a protected page — ensure onboarding is complete
   if (user && !isAuthRoute && !isOnboarding) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -68,7 +62,6 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Has session on an auth page → redirect away
   if (user && isAuthRoute) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -80,7 +73,6 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Has session on onboarding but already has profile → send to dashboard
   if (user && isOnboarding) {
     const { data: profile } = await supabase
       .from("profiles")

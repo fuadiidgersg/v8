@@ -9,7 +9,7 @@ for (const key of REQUIRED_SERVER_VARS) {
   if (!process.env[key]) {
     throw new Error(
       `Missing required environment variable: ${key}. ` +
-      `Set it in Replit Secrets before starting the server.`
+      `Set it in your environment variables before starting the server.`
     )
   }
 }
