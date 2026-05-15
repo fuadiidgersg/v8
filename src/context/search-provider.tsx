@@ -1,7 +1,9 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, Suspense } from 'react'
-import { CommandMenu } from '@/components/command-menu'
+import { createContext, useContext, useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
+
+const CommandMenu = dynamic(() => import('@/components/command-menu').then(mod => ({ default: mod.CommandMenu })), { ssr: false })
 
 type SearchContextType = {
   open: boolean
@@ -31,9 +33,7 @@ export function SearchProvider({ children }: SearchProviderProps) {
   return (
     <SearchContext value={{ open, setOpen }}>
       {children}
-      <Suspense fallback={null}>
-        <CommandMenu />
-      </Suspense>
+      <CommandMenu />
     </SearchContext>
   )
 }
