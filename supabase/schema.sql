@@ -156,3 +156,44 @@ create policy "trades_delete" on public.trades
 -- NOTE: The API routes (accounts, trades) use the service role key which
 -- bypasses RLS. The browser client (profiles upsert during onboarding) uses
 -- the anon key and is governed by RLS above.
+
+  -- ──────────────────────────────────────────────────────────
+  -- 4b. JOURNAL NOTES
+  -- ──────────────────────────────────────────────────────────
+  create table if not exists public.journal_notes (
+    id           text        primary key,                          -- client-generated uuid
+    user_id      uuid        not null references auth.users (id) on delete cascade,
+    account_id   text        not null references public.accounts (id) on delete cascade,
+    title        text        not null default 'New journal entry',
+    body         text        not null default '',
+    mood         text        not null default 'neutral'
+                 check (mood in ('great','good','neutral','frustrated','tilted')),
+    tags         text[]      not null default '{}',
+    created_at   timestamptz not null default now(),
+    updated_at   timestamptz not null default now()
+  );
+
+  create index if not exists journal_notes_user_id_idx    on public.journal_notes (user_id);
+  create index if not exists journal_notes_account_id_idx on public.journal_notes (account_id);
+  create index if not exists journal_notes_updated_at_idx on public.journal_notes (updated_at desc);
+
+  create or replace trigger journal_notes_updated_at
+    before update on public.journal_notes
+    for each row execute function public.handle_updated_at();
+
+  alter table public.journal_notes enable row level security;
+
+  drop policy if exists "journal_notes_select" on public.journal_notes;
+  drop policy if exists "journal_notes_insert" on public.journal_notes;
+  drop policy if exists "journal_notes_update" on public.journal_notes;
+  drop policy if exists "journal_notes_delete" on public.journal_notes;
+
+  create policy "journal_notes_select" on public.journal_notes
+    for select using (auth.uid() = user_id);
+  create policy "journal_notes_insert" on public.journal_notes
+    for insert with check (auth.uid() = user_id);
+  create policy "journal_notes_update" on public.journal_notes
+    for update using (auth.uid() = user_id);
+  create policy "journal_notes_delete" on public.journal_notes
+    for delete using (auth.uid() = user_id);
+  
