@@ -1,3 +1,5 @@
+'use client'
+
 import React from 'react'
 import { useNavigate } from '@/lib/router'
 import { ArrowRight, ChevronRight, Laptop, Moon, Sun } from 'lucide-react'
