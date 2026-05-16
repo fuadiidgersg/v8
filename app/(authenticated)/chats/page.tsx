@@ -1,3 +1,4 @@
-"use client";
+export const dynamic = 'force-dynamic';
+
 import { Chats } from "@/features/chats";
 export default function ChatsPage() { return <Chats />; }
