@@ -1,3 +1,5 @@
+'use client'
+
 import { useMemo, useState } from 'react'
 import { format, formatDistanceToNow } from 'date-fns'
 import {

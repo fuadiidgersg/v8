@@ -1,3 +1,5 @@
+'use client'
+
 import { Telescope } from 'lucide-react'
 
 export function ComingSoon() {

@@ -1,3 +1,5 @@
+'use client'
+
 import { useMemo } from 'react'
 import { Link } from '@/lib/router'
 import {

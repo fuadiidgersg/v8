@@ -1,3 +1,5 @@
+'use client'
+
 import { Link } from '@/lib/router'
 import {
   BadgeCheck,

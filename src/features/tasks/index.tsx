@@ -1,3 +1,5 @@
+'use client'
+
 import { Suspense, useEffect, useMemo } from 'react'
   import { useNavigate, useSearch } from '@/lib/router'
   import { ConfigDrawer } from '@/components/config-drawer'
