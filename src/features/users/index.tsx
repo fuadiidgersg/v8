@@ -1,3 +1,5 @@
+'use client'
+
 import { getRouteApi } from '@/lib/router'
 import { ConfigDrawer } from '@/components/config-drawer'
 import { Header } from '@/components/layout/header'

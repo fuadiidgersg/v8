@@ -1,3 +1,5 @@
+'use client'
+
 import { useMemo, useState } from 'react'
 import { Calendar as CalendarIcon, Filter } from 'lucide-react'
 import { cn } from '@/lib/utils'

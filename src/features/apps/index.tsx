@@ -1,3 +1,5 @@
+'use client'
+
 import { type ChangeEvent, useState } from 'react'
 import { getRouteApi } from '@/lib/router'
 import { SlidersHorizontal, ArrowUpAZ, ArrowDownAZ } from 'lucide-react'
