@@ -1,3 +1,5 @@
+'use client'
+
 import { Link } from '@/lib/router'
 import useDialogState from '@/hooks/use-dialog-state'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'

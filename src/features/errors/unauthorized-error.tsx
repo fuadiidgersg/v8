@@ -1,3 +1,5 @@
+'use client'
+
 import { useNavigate, useRouter } from '@/lib/router'
 import { Button } from '@/components/ui/button'
 
